@@ -34,16 +34,16 @@ class MembershipBehavior extends ModelBehavior {
 	 */
 	function setup(&$model, $settings = array()) {
 		$this->model = $model;
-		$this->fields = array();
-		foreach ($settings as $field => $options) {
-			
+		if (!empty($settings)) {
+			foreach ($settings['fields'] as $field => $value) {
+				$this->fields[$field] = $value;
+			}	
 		}
 	}
 	
 	/**
 	 * Cake trigger used to bind extra validation rules to the model
 	 * 
-	 *
 	 * @return boolean
 	 */
 	function beforeValidate() {
@@ -57,23 +57,42 @@ class MembershipBehavior extends ModelBehavior {
 	 * @return void
 	 */
 	function _bindValidation() {
-		$this->model->validate[$this->fields['username']] = array(
-			'rule' => array('isUnique'),
-			'message' => 'This username has already been taken.',
-		);
-		$this->model->validate[$this->fields['confirm_password']] = array_merge(
-			array('confirm' => array(
+		if (!isset($this->model->validate[$this->fields['username']]['isUnique'])) {
+			$this->model->validate[$this->fields['username']]['isUnique'] = array(
+				'rule' => array('isUnique'),
+				'message' => 'This username has already been taken.',
+			);
+		}
+		if (!isset($this->model->validate[$this->fields['username']]['minLength'])) {
+			$this->model->validate[$this->fields['username']]['minLength'] = array(
+				'rule' => array('minLength', 4),
+				'message' => 'Username must be at least 4 characters'
+			);
+		}
+		if (!isset($this->model->validate[$this->fields['confirm_password']]['confirmPassword'])) {
+			$this->model->validate[$this->fields['confirm_password']]['confirmPassword'] = array(
 				'rule' => array('confirmPassword', array()),
 				'message' => 'Passwords do not match.'
-			)),			
-			$this->model->validate[$this->fields['confirm_password']]
-		);
-		$this->model->validate[$this->fields['old_password']] = array(
-			'old' => array(
+			);
+		}
+		if (!isset($this->model->validate[$this->fields['confirm_password']]['minLength'])) {
+			$this->model->validate[$this->fields['confirm_password']]['minLength'] = array(
+				'rule' => array('minLength', 4),
+				'message' => 'Password must be at least 4 characters'
+			);
+		}
+		if (!isset($this->model->validate[$this->fields['password']]['hashPassword'])) {
+			$this->model->validate[$this->fields['password']]['hashPassword'] = array(
+				'rule' => array('hashPassword', array()),
+			);
+			
+		}
+		if (!isset($this->model->validate[$this->fields['old_password']]['oldPassword'])) {
+			$this->model->validate[$this->fields['old_password']]['oldPassword'] = array(
 				'rule' => array('oldPassword', array()),
 				'message' => 'The old password is incorrect.'
-			),
-		);
+			);
+		}
 	}
 	
 	/**
@@ -84,60 +103,74 @@ class MembershipBehavior extends ModelBehavior {
 	 * @return boolean 
 	 * @author Dean Sofer
 	 */
-	function oldPassword($data) {
-		if (Security::hash($this->data[$this->model->className][$this->fields['old_password']], null, true) == $this->field($this->fields['password'])) {
+	function oldPassword() {
+		if (Security::hash($this->model->data[$this->model->name][$this->fields['old_password']], null, true) == $this->model->field($this->fields['password'])) {
 			return true;
 		} else {
-			$this->resetPasswords();
 			return false;
 		}
+	}
+	
+	/**
+	 * Checks to see if the password has already been hashed and then hashes it.
+	 * Necessary due to a discrepency in the core where the password field is 
+	 * only hashed by the Auth component if the username field is present also.
+	 *
+	 * @return boolean
+	 */
+	function hashPassword()	{
+		if (!isset($this->model->data[$this->model->name][$this->fields['username']])) {
+			$this->model->data[$this->model->name][$this->fields['password']] =  Security::hash($this->model->data[$this->model->name][$this->fields['password']], null, true);
+		}
+		return true;
 	}
 	
 	/**
 	 * Validation function compares the two password fields to one another
 	 *
-	 * @param string $data 
 	 * @return boolean
 	 * @author Dean Sofer
 	 */
-	function confirmPassword($data) {
-		if (Security::hash($data[$this->model->className][$this->fields['confirm_password']], null, true) == $this->data[$this->model->className][$this->fields['password']]) {
+	function confirmPassword() {
+		if (Security::hash($this->model->data[$this->model->name][$this->fields['confirm_password']], null, true) == $this->model->data[$this->model->name][$this->fields['password']]) {
 			return true;
 		} else {
-			$this->resetPasswords();
 			return false;
 		}
 	}
 	
 	/**
-	 * undocumented function
+	 * Randomly generates a new password
 	 *
-	 * @return void
+	 * @param array $params charset, length, unique
+	 * @return string new random password
 	 */
-	function resetPasswords() {
-		$this->model->data[$this->model->className][$this->fields['old_password']] = '';
-		$this->model->data[$this->model->className][$this->fields['password']] = '';
-		$this->model->data[$this->model->className][$this->fields['confirm_password']] = '';
-	}
-	
-	/**
-	 * undocumented function
-	 *
-	 * @return string
-	 */
-	function generatePassword ($length = 8) {
-        // initialize variables
-        $password = "";
+	function generatePassword ($params = array()) {
+		if (!isset($params['charset'])) {
+			$charset = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		} else {
+			$charset = $params['charset'];
+		}
+		if (!isset($params['length'])) {
+			$length = 6;
+		} else {
+			$lenght = $params['length'];
+		}
+		if (!isset($params['unique'])) {
+			$unique = true;
+		} else {
+			$unique = $params['unique'];
+		}
+        $password = '';
         $i = 0;
-        $possible = "0123456789bcdfghjkmnpqrstvwxyz";
  
         // add random characters to $password until $length is reached
         while ($i < $length) {
             // pick a random character from the possible ones
-            $char = substr($possible, mt_rand(0, strlen($possible)-1), 1);
+            $char = substr($charset, mt_rand(0, strlen($charset)-1), 1);
  
             // we don't want this character if it's already in the password
-            if (!strstr($password, $char)) {
+            if (!$unique || !strstr($charset, $char)) {
                 $password .= $char;
                 $i++;
             }
