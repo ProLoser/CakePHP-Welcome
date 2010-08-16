@@ -10,6 +10,9 @@
 		echo $this->Form->input('username');
 		echo $this->Form->input('password');
 		echo $this->Form->input('confirm_password');
+		if (isset($captcha)) {
+			echo $this->Form->input('captcha');	
+		}
 	?>
 	</fieldset>
 <?php echo $this->Form->end(__('Submit', true));?>

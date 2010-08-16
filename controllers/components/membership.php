@@ -7,17 +7,23 @@
  * @package User Plugin
  **/
 class MembershipComponent extends Object {
-
-	/**
-	 * Default fieldnames
-	 *
-	 * @var array
-	 */
-	var $fields = array(
-		'username' => 'username',
-		'password' => 'password',
-		'old_password' => 'old_password',
-		'confirm_password' => 'confirm_password',
+	
+	var $name = 'Membership';
+	
+	var $components = array('Email');
+	
+	var $settings = array(
+		'fields' => array(
+			'username' => 'username',
+			'password' => 'password',
+			'old_password' => 'old_password',
+			'confirm_password' => 'confirm_password',
+			'email' => 'email',
+		),
+		'app' => array(
+			'from' => 'no-reply@example.com',
+			'name' => 'Example.com',
+		)
 	);
 	
 	
@@ -25,21 +31,18 @@ class MembershipComponent extends Object {
 		// saving the controller reference for later use
 		$this->controller =& $controller;
 		if (!empty($settings)) {
-			foreach ($settings['fields'] as $field => $value) {
-				$this->fields[$field] = $value;
-			}	
+			foreach ($settings as $group => $setting) {
+				foreach ($setting as $option => $value) {
+					$this->settings[$group][$option] = $value;
+				}
+			}
 		}
-	}
-	
-	/**
-	 * Standard auth configuration for the users controller
-	 *
-	 * @return void
-	 * @author Dean Sofer
-	 */
-	function authAllow() {
-		$this->controller->Auth->allow(array('add', 'reset'));
-		$this->controller->Auth->deny(array('edit', 'password', 'delete'));
+		if (!isset($settings['app']['from'])) {
+			$settings['app']['from'] = 'no-reply@' . $_SERVER['HTTP_HOST'];
+		}
+		if (!isset($settings['app']['name'])) {
+			$settings['app']['name'] = Inflector::humanize(APP_DIR);
+		}
 	}
 	
 	/**
@@ -49,69 +52,64 @@ class MembershipComponent extends Object {
 	 * @author Dean Sofer
 	 */
 	function resetPasswords() {
-		if (isset($this->controller->data[$this->controller->modelClass][$this->fields['old_password']])) {
-			$this->controller->data[$this->controller->modelClass][$this->fields['old_password']] = '';
+		if (isset($this->controller->data[$this->controller->modelClass][$this->settings['fields']['old_password']])) {
+			$this->controller->data[$this->controller->modelClass][$this->settings['fields']['old_password']] = '';
 		}
-		if (isset($this->controller->data[$this->controller->modelClass][$this->fields['password']])) {
-			$this->controller->data[$this->controller->modelClass][$this->fields['password']] = '';
+		if (isset($this->controller->data[$this->controller->modelClass][$this->settings['fields']['password']])) {
+			$this->controller->data[$this->controller->modelClass][$this->settings['fields']['password']] = '';
 		}
-		if (isset($this->controller->data[$this->controller->modelClass][$this->fields['confirm_password']])) {
-			$this->controller->data[$this->controller->modelClass][$this->fields['confirm_password']] = '';
+		if (isset($this->controller->data[$this->controller->modelClass][$this->settings['fields']['confirm_password']])) {
+			$this->controller->data[$this->controller->modelClass][$this->settings['fields']['confirm_password']] = '';
 		}
-	}
-	
-	function login() {
-		
-	}
-	
-	function logout() {
-		
 	}
 	
 	// @TODO Send Email after registering
 	function register() {
-		if (!empty($this->controller->data) || !empty($_REQUEST['name']) || !empty($_REQUEST['email']) || !empty($_REQUEST['username'])) {
-			$this->controller->User->create();
-			if ($this->controller->User->save($this->data)) {
-				$this->controller->Session->setFlash('Thank you for registering');
-			} else {
-				$this->controller->Session->setFlash('Failed to register, please try again.');
-			}
+		$this->Email->to = $this->controller->data[$this->controller->modelClass][$this->settings['fields']['email']];
+		$this->Email->from = $this->settings['app']['from'];
+		$this->Email->subject = 'Thank you for registering at ' . $this->settings['app']['name'];
+		$this->Email->sendAs = 'both';
+		$this->Email->template = 'register';
+		$this->Email->send();
+	}
+	
+	function spamCheck() {
+		if (!empty($_REQUEST['name']) || !empty($_REQUEST['email']) || !empty($_REQUEST['username'])) {
+			return false;
+		} else {
+			return true;
 		}
 	}
 	
 	// @TODO Code email confirmation activation function
 	function activate() {
-		
-	}
-	
-	
-	function edit() {
-		if (!empty($this->controller->data)) {
-			if ($this->controller->User->save($this->data)) {
-				return true;
-			} else {
-				return false;
-			}
-		}
-		if (empty($this->controller->data)) {
-			$this->controller->data = $this->controller->User->read(null, $id);
-		}
-	}
-	
-	function password() {
-		if (!empty($this->controller->data)) {
-			if ($this->controller->User->save($this->controller->data)) {
-				return true;
-			} else {
-				return false;
-			}
-		}
+
 	}
 	
 	// @TODO Code emailing of new password to the user
 	function reset() {
+		if ($user = $this->User->forgotRetrieval($this->data)) {
+			$password = $this->Controller->User->generatePassword();
+			$this->Controller->User->id = $this->Controller->data[$this->Controller->modelClass]['id'];
+			$this->saveField($this->settings['fields']['password'], $this->Controller->Auth->password($password));
 		
+			// Send email		
+			$message = sprintf(__('Your password has been reset for %s, your information is listed below', true), $this->settings['app']['name']) .":\n\n";
+			$subject = __('Reset Password', true);
+		
+			$message .= __('Username', true) .": ". $user['User']['username'] ."\n";
+			$message .= __('Password', true) .": ". $password ."\n\n";
+			$message .= __('Please change your password once logged in.', true);
+		
+			$this->Controller->Email->to = $this->Controller->data[$this->Controller->modelClass][$this->settings['fields']['username']] .' <'. $this->controller->data[$this->controller->modelClass][$this->settings['fields']['email']] .'>';
+			$this->Controller->Email->from = $this->settings['app']['name'] .' <'. $this->settings['app']['email'] .'>';
+			$this->Controller->Email->subject = $this->settings['app']['name'] .' - '. $subject;
+			// TODO create reset template $this->Email->template = 'reset';
+			$this->Controller->Email->send($message);
+			return true;
+		} else {
+			return false;
+		}
 	}
 }
 ?>

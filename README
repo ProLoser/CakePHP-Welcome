@@ -1,0 +1,40 @@
+h1. Welcome Plugin For CakePHP
+
+Common user functionality to be used with core Auth component for CakePHP
+
+h2. Features
+
+* Registration (with optional email confirmation)
+* Validation
+** Confirm password field validation
+** Old password field validation
+** Unique [username] field validation
+* 
+
+h2. Installation
+
+1. Download or clone plugin to plugins/welcome (git://github.com/ProLoser/CakePHP-Welcome.git)
+2. Install 'Membership' behavior:
+<pre><code>
+class User extends AppModel {
+	var $name = 'User';
+	var $actsAs = array(
+		'Welcome.Membership' => array(
+			// Optional configuration options
+			'fields' => array(
+				// fieldnames to be used
+				'username' => 'username',
+				'password' => 'password',
+				'old_password' => 'old_password',
+				'confirm_password' => 'confirm_password',
+			),
+			'validation' => true,
+			'email_confirmation' => true,
+			'captcha' => true,
+			'remember_me' => true,
+		),
+	);
+
+}
+</code></pre>
+3. Configure routes for <code>/welcome/users/register</code>

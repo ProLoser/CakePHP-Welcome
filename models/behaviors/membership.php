@@ -11,15 +11,21 @@
 class MembershipBehavior extends ModelBehavior {
 	
 	/**
-	 * Default fieldnames
+	 * Default settings
 	 *
 	 * @var array
 	 */
-	var $fields = array(
-		'username' => 'username',
-		'password' => 'password',
-		'old_password' => 'old_password',
-		'confirm_password' => 'confirm_password',
+	var $_settings = array(
+		'fields' => array(
+			'username' => 'username',
+			'password' => 'password',
+			'old_password' => 'old_password',
+			'confirm_password' => 'confirm_password',
+		),
+		'validation' => true,
+		'email_confirmation' => true,
+		'captcha' => true,
+		'remember_me' => true,
 	);
 	
 	/**
@@ -34,11 +40,7 @@ class MembershipBehavior extends ModelBehavior {
 	 */
 	function setup(&$model, $settings = array()) {
 		$this->model = $model;
-		if (!empty($settings)) {
-			foreach ($settings['fields'] as $field => $value) {
-				$this->fields[$field] = $value;
-			}	
-		}
+		$this->_settings = array_merge($this->_settings, $settings);
 	}
 	
 	/**
@@ -47,7 +49,10 @@ class MembershipBehavior extends ModelBehavior {
 	 * @return boolean
 	 */
 	function beforeValidate() {
-		$this->_bindValidation();
+		if ($this->_settings['validation']) {
+			$this->hashPassword();
+			$this->_bindValidation();
+		}
 		return true;
 	}
 	
@@ -57,41 +62,36 @@ class MembershipBehavior extends ModelBehavior {
 	 * @return void
 	 */
 	function _bindValidation() {
-		if (!isset($this->model->validate[$this->fields['username']]['isUnique'])) {
-			$this->model->validate[$this->fields['username']]['isUnique'] = array(
-				'rule' => array('isUnique'),
-				'message' => 'This username has already been taken.',
+		if (!isset($this->model->validate[$this->_settings['fields']['username']]['isUnique'])) {
+			$this->model->validate[$this->_settings['fields']['username']]['isUnique'] = array(
+				'rule' => 'isUnique',
+				'message' => 'The ' . Inflector::humanize($this->_settings['fields']['username']) . ' has already been taken.',
 			);
 		}
-		if (!isset($this->model->validate[$this->fields['username']]['minLength'])) {
-			$this->model->validate[$this->fields['username']]['minLength'] = array(
-				'rule' => array('minLength', 4),
-				'message' => 'Username must be at least 4 characters'
+		if (!isset($this->model->validate[$this->_settings['fields']['confirm_password']]['confirmPassword'])) {
+			$this->model->validate[$this->_settings['fields']['confirm_password']]['confirmPassword'] = array(
+				'rule' => 'confirmPassword',
+				'message' => Inflector::humanize(Inflector::pluralize($this->_settings['fields']['password'])) . ' do not match.'
 			);
 		}
-		if (!isset($this->model->validate[$this->fields['confirm_password']]['confirmPassword'])) {
-			$this->model->validate[$this->fields['confirm_password']]['confirmPassword'] = array(
-				'rule' => array('confirmPassword', array()),
-				'message' => 'Passwords do not match.'
+		if (!isset($this->model->validate[$this->_settings['fields']['old_password']]['oldPassword'])) {
+			$this->model->validate[$this->_settings['fields']['old_password']]['oldPassword'] = array(
+				'rule' => 'oldPassword',
+				'message' => 'The old ' . Inflector::humanize($this->_settings['fields']['password']) . ' is incorrect.'
 			);
 		}
-		if (!isset($this->model->validate[$this->fields['confirm_password']]['minLength'])) {
-			$this->model->validate[$this->fields['confirm_password']]['minLength'] = array(
-				'rule' => array('minLength', 4),
-				'message' => 'Password must be at least 4 characters'
-			);
-		}
-		if (!isset($this->model->validate[$this->fields['password']]['hashPassword'])) {
-			$this->model->validate[$this->fields['password']]['hashPassword'] = array(
-				'rule' => array('hashPassword', array()),
-			);
-			
-		}
-		if (!isset($this->model->validate[$this->fields['old_password']]['oldPassword'])) {
-			$this->model->validate[$this->fields['old_password']]['oldPassword'] = array(
-				'rule' => array('oldPassword', array()),
-				'message' => 'The old password is incorrect.'
-			);
+	}
+
+	/**
+	 * Checks to see if the password has already been hashed and then hashes it.
+	 * Necessary due to a discrepency in the core where the password field is 
+	 * only hashed by the Auth component if the username field is present also.
+	 *
+	 * @return boolean
+	 */
+	function hashPassword()	{
+		if (!isset($this->model->data[$this->model->name][$this->_settings['fields']['username']])) {
+			$this->model->data[$this->model->name][$this->_settings['fields']['password']] = Security::hash($this->model->data[$this->model->name][$this->_settings['fields']['password']], null, true);
 		}
 	}
 	
@@ -104,7 +104,10 @@ class MembershipBehavior extends ModelBehavior {
 	 * @author Dean Sofer
 	 */
 	function oldPassword() {
-		if (Security::hash($this->model->data[$this->model->name][$this->fields['old_password']], null, true) == $this->model->field($this->fields['password'])) {
+		if (
+			Security::hash($this->model->data[$this->model->name][$this->_settings['fields']['old_password']], null, true) 
+			== $this->model->field($this->_settings['fields']['password'])
+		) {
 			return true;
 		} else {
 			return false;
@@ -112,27 +115,17 @@ class MembershipBehavior extends ModelBehavior {
 	}
 	
 	/**
-	 * Checks to see if the password has already been hashed and then hashes it.
-	 * Necessary due to a discrepency in the core where the password field is 
-	 * only hashed by the Auth component if the username field is present also.
-	 *
-	 * @return boolean
-	 */
-	function hashPassword()	{
-		if (!isset($this->model->data[$this->model->name][$this->fields['username']])) {
-			$this->model->data[$this->model->name][$this->fields['password']] =  Security::hash($this->model->data[$this->model->name][$this->fields['password']], null, true);
-		}
-		return true;
-	}
-	
-	/**
 	 * Validation function compares the two password fields to one another
+	 * Requires hashPassword to already be run
 	 *
 	 * @return boolean
 	 * @author Dean Sofer
 	 */
 	function confirmPassword() {
-		if (Security::hash($this->model->data[$this->model->name][$this->fields['confirm_password']], null, true) == $this->model->data[$this->model->name][$this->fields['password']]) {
+		if (
+			Security::hash($this->model->data[$this->model->name][$this->_settings['fields']['confirm_password']], null, true) 
+			== $this->model->data[$this->model->name][$this->_settings['fields']['password']]
+		) {
 			return true;
 		} else {
 			return false;
@@ -145,22 +138,13 @@ class MembershipBehavior extends ModelBehavior {
 	 * @param array $params charset, length, unique
 	 * @return string new random password
 	 */
-	function generatePassword ($params = array()) {
-		if (!isset($params['charset'])) {
-			$charset = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-		} else {
-			$charset = $params['charset'];
-		}
-		if (!isset($params['length'])) {
-			$length = 6;
-		} else {
-			$lenght = $params['length'];
-		}
-		if (!isset($params['unique'])) {
-			$unique = true;
-		} else {
-			$unique = $params['unique'];
-		}
+	function generatePassword($params = array()) {
+		$defaults = array(
+			'charset' => '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+			'length' => 6,
+			'unique' => true,
+		);
+		$params = array_merge($defaults, $params);
         $password = '';
         $i = 0;
  
@@ -177,5 +161,30 @@ class MembershipBehavior extends ModelBehavior {
         }
         return $password;
     }
+
+	/**
+	 * Retrieve and reset information for a forgotten password.
+	 *
+	 * @access public
+	 * @param array $data
+	 * @return array
+	 */
+	public function forgot($data) {
+		$user = $this->find('first', array(
+			'conditions' => array(
+				array(
+					$this->fields['email'] => $data[$this->model->name][$this->fields['email']],
+					$this->fields['username'] => $data[$this->model->name][$this->fields['username']]
+				)
+			)
+		));
+		
+		if (empty($user)) {
+			$this->invalidate('username', 'No user was found with either of those credentials');
+			return false;
+		}
+		
+		return $user;
+	}
 }
 ?>

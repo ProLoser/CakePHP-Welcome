@@ -1,14 +1,17 @@
-<?php $this->set('actions', array(
-	$this->Html->link(__('Need to Register?', true), array('action' => 'add')),
-	$this->Html->link(__('Forgotten Password?', true), array('action' => 'reset')),
-)); ?>
 <div class="users login">
 <?php echo $this->Form->create('User');?>
 	<fieldset>
  		<legend><?php __('Login')?></legend>
 	<?php
-		echo $this->Form->input('username');
-		echo $this->Form->input('password');
+		echo $this->Form->input('username', array('after' => 
+			$this->Html->link('Need to Register?', array('plugin' => 'welcome', 'controller' => 'users', 'action' => 'register'))
+		));
+		echo $this->Form->input('password', array('after' => 
+			$this->Html->link('Forgotton Password?', array('plugin' => 'welcome', 'controller' => 'users', 'action' => 'reset')),			
+		));
+		if (isset($rememberMe) && $rememberMe) {
+			echo $this->Form->input('remember_me', array('type' => 'checkbox'));
+		}
 	?>
 	</fieldset>
 <?php echo $this->Form->end(__('Login', true));?>
