@@ -1,21 +1,27 @@
-h1. Welcome Plugin For CakePHP
+=== Welcome Plugin For CakePHP ===
 
 Common user functionality to be used with core Auth component for CakePHP
 
-h2. Features
+--- Features ---
+- Scaffolded actions with overrideable views
+	- Login
+	- Register
+	- Forgotton Password (reset account)
+	- My Account Settings (basic)
+	- Close Account
+	- Update Password
+- Optional Auto Validation (can be disabled and accessed normally)
+ 	- Confirm password field validation
+ 	- Old password field validation
+	- Unique [username] field validation
+- Email confirmation for registration (in progress)
+- Captcha (future)
+- Remember Me checkbox (in progress)
 
-* Registration (with optional email confirmation)
-* Validation
-** Confirm password field validation
-** Old password field validation
-** Unique [username] field validation
-* 
-
-h2. Installation
-
+--- Installation ---
 1. Download or clone plugin to plugins/welcome (git://github.com/ProLoser/CakePHP-Welcome.git)
 2. Install 'Membership' behavior:
-<pre><code>
+***
 class User extends AppModel {
 	var $name = 'User';
 	var $actsAs = array(
@@ -28,13 +34,20 @@ class User extends AppModel {
 				'old_password' => 'old_password',
 				'confirm_password' => 'confirm_password',
 			),
-			'validation' => true,
-			'email_confirmation' => true,
-			'captcha' => true,
-			'remember_me' => true,
+			'validation' => true, 			// Disables auto enable of validation
+			'email_confirmation' => true, 	// Set to false to disable
+			'captcha' => true,				// Set to false to disable
+			'remember_me' => true,			// Set to false to disable
 		),
 	);
 
 }
-</code></pre>
-3. Configure routes for <code>/welcome/users/register</code>
+***
+3. Just visit /welcome/users/register and the other controller actions in your browser
+
+--- Custom Views / Emails ---
+If you would like to override the default views, you can use the CakePHP standard by placing your views in 
+app/views/plugins/welcome/users/<here> 
+
+and your email templates in 
+app/views/plugins/welcome/elements/email/[html|text]/register.ctp
