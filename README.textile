@@ -1,27 +1,30 @@
-=== Welcome Plugin For CakePHP ===
+h1. Welcome Plugin For CakePHP
 
 Common user functionality to be used with core Auth component for CakePHP
 
---- Features ---
-- Scaffolded actions with overrideable views
-	- Login
-	- Register
-	- Forgotton Password (reset account)
-	- My Account Settings (basic)
-	- Close Account
-	- Update Password
-- Optional Auto Validation (can be disabled and accessed normally)
- 	- Confirm password field validation
- 	- Old password field validation
-	- Unique [username] field validation
-- Email confirmation for registration (in progress)
-- Captcha (future)
-- Remember Me checkbox (in progress)
+h2. Features 
 
---- Installation ---
+* Scaffolded actions with overrideable views
+** Login
+** Register
+** Forgotton Password (reset account)
+** My Account Settings (basic)
+** Close Account
+** Update Password
+* Optional Auto Validation (can be disabled and accessed normally)
+** Confirm password field validation
+** Old password field validation
+** Unique [username] field validation
+* Email confirmation for registration (in progress)
+* Captcha (future)
+* Remember Me checkbox (in progress)
+
+h2. Installation
+
 1. Download or clone plugin to plugins/welcome (git://github.com/ProLoser/CakePHP-Welcome.git)
 2. Install 'Membership' behavior:
-***
+
+<pre><code>
 class User extends AppModel {
 	var $name = 'User';
 	var $actsAs = array(
@@ -42,12 +45,13 @@ class User extends AppModel {
 	);
 
 }
-***
+</code></pre>
+
 3. Just visit /welcome/users/register and the other controller actions in your browser
 
---- Custom Views / Emails ---
-If you would like to override the default views, you can use the CakePHP standard by placing your views in 
-app/views/plugins/welcome/users/<here> 
+h2. Custom Views / Emails
 
-and your email templates in 
-app/views/plugins/welcome/elements/email/[html|text]/register.ctp
+If you would like to override the default views, you can use the CakePHP standard by placing your views in:
+<code>app/views/plugins/welcome/users/[here]</code>
+And your email templates in:
+<code>app/views/plugins/welcome/elements/email/[html|text]/register.ctp</code>
