@@ -22,10 +22,6 @@ class MembershipBehavior extends ModelBehavior {
 			'old_password' => 'old_password',
 			'confirm_password' => 'confirm_password',
 		),
-		'validation' => true,
-		'email_confirmation' => true,
-		'captcha' => true,
-		'remember_me' => true,
 	);
 	
 	/**
@@ -49,10 +45,8 @@ class MembershipBehavior extends ModelBehavior {
 	 * @return boolean
 	 */
 	function beforeValidate() {
-		if ($this->_settings['validation']) {
-			$this->hashPassword();
-			$this->_bindValidation();
-		}
+		$this->hashPassword();
+		$this->_bindValidation();
 		return true;
 	}
 	
@@ -185,6 +179,22 @@ class MembershipBehavior extends ModelBehavior {
 		}
 		
 		return $user;
+	}
+	
+	/**
+	 * Uses the token to confirm the account registration
+	 *
+	 * @param string $token 
+	 * @return boolean $success
+	 */
+	public function confirm($token) {
+		if (true) {
+			$success = true;
+		} else {
+			$success = false;
+		}
+		
+		return $success;
 	}
 }
 ?>

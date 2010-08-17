@@ -1,15 +1,12 @@
-<?php $this->set('actions', array(
-	$this->Html->link(__('Forgotten Password?', true), array('action' => 'reset')),
-)); ?>
-<div class="users form">
+<div class="users register">
 <?php echo $this->Form->create('User');?>
 	<fieldset>
- 		<legend><?php echo $this->title_for_layout = __('Register', true)?></legend>
+ 		<legend><?php __('Register')?></legend>
 	<?php
 		echo $this->Form->input('email');
 		echo $this->Form->input('username');
-		echo $this->Form->input('password');
-		echo $this->Form->input('confirm_password');
+		echo $this->Form->input('password', array('type' => 'password'));
+		echo $this->Form->input('confirm_password', array('type' => 'password'));
 		if (isset($captcha)) {
 			echo $this->Form->input('captcha');	
 		}

@@ -1,7 +1,3 @@
-<?php $this->set('actions', array(
-	$this->Html->link(__('My Account', true), array('action' => 'index')),
-	$this->Html->link(__('Logout', true), array('action' => 'logout')),
-)); ?>
 <div class="users form">
 	<h2><?php __('Close Account'); ?></h2>
 	<fieldset>

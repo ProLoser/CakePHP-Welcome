@@ -14,35 +14,27 @@ class MembershipComponent extends Object {
 	
 	var $settings = array(
 		'fields' => array(
-			'username' => 'username',
-			'password' => 'password',
 			'old_password' => 'old_password',
 			'confirm_password' => 'confirm_password',
 			'email' => 'email',
 		),
-		'app' => array(
-			'from' => 'no-reply@example.com',
-			'name' => 'Example.com',
-		)
+		'from' => 'no-reply@example.com',
+		'appName' => 'Example.com',
+		'sendAs' => 'both', // text, html, both
+		'delivery' => 'mail', // mail, smtp (requires options), debug
+		'smtpOptions' => array() // port, host, timeout, username, password, client
 	);
 	
 	
 	function initialize(&$controller, $settings = array()) {
+		// Environment based Default Settings
+		$this->settings['from'] = 'no-reply@' . $_SERVER['HTTP_HOST'];
+		$this->settings['appName'] = Inflector::humanize(APP_DIR);
+		
+		$this->settings = array_merge($this->settings, $settings);
+		
 		// saving the controller reference for later use
 		$this->controller =& $controller;
-		if (!empty($settings)) {
-			foreach ($settings as $group => $setting) {
-				foreach ($setting as $option => $value) {
-					$this->settings[$group][$option] = $value;
-				}
-			}
-		}
-		if (!isset($settings['app']['from'])) {
-			$settings['app']['from'] = 'no-reply@' . $_SERVER['HTTP_HOST'];
-		}
-		if (!isset($settings['app']['name'])) {
-			$settings['app']['name'] = Inflector::humanize(APP_DIR);
-		}
 	}
 	
 	/**
@@ -63,27 +55,18 @@ class MembershipComponent extends Object {
 		}
 	}
 	
-	// @TODO Send Email after registering
-	function register() {
-		$this->Email->to = $this->controller->data[$this->controller->modelClass][$this->settings['fields']['email']];
-		$this->Email->from = $this->settings['app']['from'];
-		$this->Email->subject = 'Thank you for registering at ' . $this->settings['app']['name'];
-		$this->Email->sendAs = 'both';
-		$this->Email->template = 'register';
-		$this->Email->send();
-	}
-	
-	function spamCheck() {
+	/**
+	 * Performs a spam check for any form submission
+	 *
+	 * @return boolean If the submission fails the spam check
+	 * @author Dean
+	 */
+	function captcha() {
 		if (!empty($_REQUEST['name']) || !empty($_REQUEST['email']) || !empty($_REQUEST['username'])) {
 			return false;
 		} else {
 			return true;
 		}
-	}
-	
-	// @TODO Code email confirmation activation function
-	function activate() {
-
 	}
 	
 	// @TODO Code emailing of new password to the user
@@ -94,22 +77,55 @@ class MembershipComponent extends Object {
 			$this->saveField($this->settings['fields']['password'], $this->Controller->Auth->password($password));
 		
 			// Send email		
-			$message = sprintf(__('Your password has been reset for %s, your information is listed below', true), $this->settings['app']['name']) .":\n\n";
+			$message = sprintf(__('Your password has been reset for %s, your information is listed below', true), $this->settings['appName']) .":\n\n";
 			$subject = __('Reset Password', true);
 		
 			$message .= __('Username', true) .": ". $user['User']['username'] ."\n";
 			$message .= __('Password', true) .": ". $password ."\n\n";
 			$message .= __('Please change your password once logged in.', true);
 		
-			$this->Controller->Email->to = $this->Controller->data[$this->Controller->modelClass][$this->settings['fields']['username']] .' <'. $this->controller->data[$this->controller->modelClass][$this->settings['fields']['email']] .'>';
-			$this->Controller->Email->from = $this->settings['app']['name'] .' <'. $this->settings['app']['email'] .'>';
-			$this->Controller->Email->subject = $this->settings['app']['name'] .' - '. $subject;
-			// TODO create reset template $this->Email->template = 'reset';
-			$this->Controller->Email->send($message);
+			$this->Email->to = $this->Controller->data[$this->Controller->modelClass][$this->settings['fields']['username']] .' <'. $this->controller->data[$this->controller->modelClass][$this->settings['fields']['email']] .'>';
+			$this->Email->from = $this->settings['appName'] .' <'. $this->settings['app']['email'] .'>';
+			$this->Email->subject = $this->settings['appName'] .' - '. $subject;
+			$this->Email->send($message);
 			return true;
 		} else {
 			return false;
 		}
+	}
+	
+	/**
+	 * Sends an email for the specified template
+	 *
+	 * @param string $type 
+	 * @param string $data 
+	 * @return void
+	 * @author Dean
+	 */
+	function email($type, $data = null) {
+		if (!$data) {
+			$data = $this->Controller->data;
+		}
+		
+		$this->Email->to = $data[$this->controller->modelClass][$this->settings['fields']['email']];
+		$this->Email->from = $this->settings['from'];
+			
+		switch ($type) {
+			case 'register':
+				$this->Email->subject = 'Thank you for registering at ' . $this->settings['appName'];
+				break;
+			case 'reset':
+				$this->Email->subject = 'Thank you for registering at ' . $this->settings['appName'];
+				break;
+			case 'activation':
+				$this->Email->subject = 'Thank you for registering at ' . $this->settings['appName'];
+				break;
+		}
+		
+		$this->Email->template = $type;
+		$this->Email->sendAs = 'both';
+		
+		return $this->Email->send($message);
 	}
 }
 ?>

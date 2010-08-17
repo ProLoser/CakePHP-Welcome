@@ -1,7 +1,3 @@
-<?php $this->set('actions', array(
-	$this->Html->link(__('Edit User', true), array('action' => 'edit')),
-	$this->Html->link(__('Logout', true), array('action' => 'logout')),
-)); ?>
 <div class="users form">
 <?php echo $this->Form->create('User');?>
 	<fieldset>

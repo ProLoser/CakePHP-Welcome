@@ -1,25 +1,29 @@
-h1. Welcome Plugin For CakePHP
+# Welcome Plugin For CakePHP
 
 Common user functionality to be used with core Auth component for CakePHP
 
-h2. Features 
+## Features 
 
-* Scaffolded actions with overrideable views
-** Login
-** Register
-** Forgotton Password (reset account)
-** My Account Settings (basic)
-** Close Account
-** Update Password
-* Optional Auto Validation (can be disabled and accessed normally)
-** Confirm password field validation
-** Old password field validation
-** Unique [username] field validation
+### Membership Behavior
+
+* Validation
+	* Confirm password field validation
+	* Old password field validation
+	* Unique [username] field validation
+	
+### Membership Component
+
 * Email confirmation for registration (in progress)
-* Captcha (future)
 * Remember Me checkbox (in progress)
 
-h2. Installation
+* Scaffolded views (for copying)
+	* Login
+	* Register
+	* Forgotton Password (reset account)
+	* Update Password
+
+
+## Installation
 
 1. Download or clone plugin to plugins/welcome (git://github.com/ProLoser/CakePHP-Welcome.git)
 2. Install 'Membership' behavior:
@@ -37,10 +41,6 @@ class User extends AppModel {
 				'old_password' => 'old_password',
 				'confirm_password' => 'confirm_password',
 			),
-			'validation' => true, 			// Disables auto enable of validation
-			'email_confirmation' => true, 	// Set to false to disable
-			'captcha' => true,				// Set to false to disable
-			'remember_me' => true,			// Set to false to disable
 		),
 	);
 
@@ -49,7 +49,7 @@ class User extends AppModel {
 
 3. Just visit /welcome/users/register and the other controller actions in your browser
 
-h2. Custom Views / Emails
+## Custom Views / Emails
 
 If you would like to override the default views, you can use the CakePHP standard by placing your views in:
 <code>app/views/plugins/welcome/users/[here]</code>
