@@ -21,8 +21,17 @@ class MembershipBehavior extends ModelBehavior {
 			'password' => 'password',
 			'old_password' => 'old_password',
 			'confirm_password' => 'confirm_password',
+			'token' => 'token',
 		),
 	);
+	
+	function beforeSave($data) {
+		$fields = $this->_settings['fields'];
+		if ($fields['token']) {
+			$this->model->data[$this->model->name][$fields['token']] = '';
+		}
+		return true;
+	}
 	
 	/**
 	 * Setup the behavior. It stores a reference to the model, merges the 
@@ -45,7 +54,9 @@ class MembershipBehavior extends ModelBehavior {
 	 * @return boolean
 	 */
 	function beforeValidate() {
+		debug($this->model->data);
 		$this->hashPassword();
+		debug($this->model->data);
 		$this->_bindValidation();
 		return true;
 	}
@@ -56,22 +67,23 @@ class MembershipBehavior extends ModelBehavior {
 	 * @return void
 	 */
 	function _bindValidation() {
-		if (!isset($this->model->validate[$this->_settings['fields']['username']]['isUnique'])) {
-			$this->model->validate[$this->_settings['fields']['username']]['isUnique'] = array(
+		$fields = $this->_settings['fields'];
+		if (!isset($this->model->validate[$fields['username']]['isUnique'])) {
+			$this->model->validate[$fields['username']]['isUnique'] = array(
 				'rule' => 'isUnique',
-				'message' => 'The ' . Inflector::humanize($this->_settings['fields']['username']) . ' has already been taken.',
+				'message' => 'The ' . Inflector::humanize($fields['username']) . ' has already been taken.',
 			);
 		}
-		if (!isset($this->model->validate[$this->_settings['fields']['confirm_password']]['confirmPassword'])) {
-			$this->model->validate[$this->_settings['fields']['confirm_password']]['confirmPassword'] = array(
+		if (!isset($this->model->validate[$fields['confirm_password']]['confirmPassword'])) {
+			$this->model->validate[$fields['confirm_password']]['confirmPassword'] = array(
 				'rule' => 'confirmPassword',
-				'message' => Inflector::humanize(Inflector::pluralize($this->_settings['fields']['password'])) . ' do not match.'
+				'message' => Inflector::humanize(Inflector::pluralize($fields['password'])) . ' do not match.'
 			);
 		}
-		if (!isset($this->model->validate[$this->_settings['fields']['old_password']]['oldPassword'])) {
-			$this->model->validate[$this->_settings['fields']['old_password']]['oldPassword'] = array(
+		if (!isset($this->model->validate[$fields['old_password']]['oldPassword'])) {
+			$this->model->validate[$fields['old_password']]['oldPassword'] = array(
 				'rule' => 'oldPassword',
-				'message' => 'The old ' . Inflector::humanize($this->_settings['fields']['password']) . ' is incorrect.'
+				'message' => 'The old ' . Inflector::humanize($fields['password']) . ' is incorrect.'
 			);
 		}
 	}
@@ -84,8 +96,9 @@ class MembershipBehavior extends ModelBehavior {
 	 * @return boolean
 	 */
 	function hashPassword()	{
-		if (!isset($this->model->data[$this->model->name][$this->_settings['fields']['username']])) {
-			$this->model->data[$this->model->name][$this->_settings['fields']['password']] = Security::hash($this->model->data[$this->model->name][$this->_settings['fields']['password']], null, true);
+		$fields = $this->_settings['fields'];
+		if (!isset($this->model->data[$this->model->name][$fields['username']])) {
+			$this->model->data[$this->model->name][$fields['password']] = Security::hash($this->model->data[$this->model->name][$fields['password']], null, true);
 		}
 	}
 	
@@ -98,9 +111,10 @@ class MembershipBehavior extends ModelBehavior {
 	 * @author Dean Sofer
 	 */
 	function oldPassword() {
+		$fields = $this->_settings['fields'];
 		if (
-			Security::hash($this->model->data[$this->model->name][$this->_settings['fields']['old_password']], null, true) 
-			== $this->model->field($this->_settings['fields']['password'])
+			Security::hash($this->model->data[$this->model->name][$fields['old_password']], null, true) 
+			== $this->model->field($fields['password'])
 		) {
 			return true;
 		} else {
@@ -116,9 +130,10 @@ class MembershipBehavior extends ModelBehavior {
 	 * @author Dean Sofer
 	 */
 	function confirmPassword() {
+		$fields = $this->_settings['fields'];
 		if (
-			Security::hash($this->model->data[$this->model->name][$this->_settings['fields']['confirm_password']], null, true) 
-			== $this->model->data[$this->model->name][$this->_settings['fields']['password']]
+			Security::hash($this->model->data[$this->model->name][$fields['confirm_password']], null, true) 
+			== $this->model->data[$this->model->name][$fields['password']]
 		) {
 			return true;
 		} else {
