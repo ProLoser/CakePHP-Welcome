@@ -54,9 +54,7 @@ class MembershipBehavior extends ModelBehavior {
 	 * @return boolean
 	 */
 	function beforeValidate() {
-		debug($this->model->data);
 		$this->hashPassword();
-		debug($this->model->data);
 		$this->_bindValidation();
 		return true;
 	}
