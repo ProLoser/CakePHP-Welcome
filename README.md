@@ -1,5 +1,7 @@
 # Welcome Plugin For CakePHP
 
+## THIS PLUGIN IS COMPLETELY BROKEN, DONT BOTHER USING IT
+
 Common user functionality to be used with core Auth component for CakePHP
 
 ## Features 
